@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
 
@@ -47,7 +47,6 @@ class Newsletters(Resource):
         return response
 
     def post(self):
-        
         new_record = Newsletter(
             title=request.form['title'],
             body=request.form['body'],
@@ -59,7 +58,7 @@ class Newsletters(Resource):
         response_dict = new_record.to_dict()
 
         response = make_response(
-            response_dict,
+            jsonify(response_dict),
             201,
         )
 
@@ -69,6 +68,7 @@ api.add_resource(Newsletters, '/newsletters')
 
 class NewsletterByID(Resource):
 
+# GET method, get the newsletter by ID
     def get(self, id):
 
         response_dict = Newsletter.query.filter_by(id=id).first().to_dict()
@@ -77,10 +77,52 @@ class NewsletterByID(Resource):
             response_dict,
             200,
         )
-
         return response
+    
+    # PATCH method
+    def patch (self, id):
+        data = request.get_json()
+        newsletter = Newsletter.query.get(id)
+        if newsletter:
+            newsletter.title = data['title']
+            newsletter.body = data['body']
+            db.session.commit()
+            response = make_response(
+                newsletter.to_dict(),
+                200,
+            )
+            return response
+        else:
+            response = make_response(
+                {"message": f"Newsletter ID {id} not found"},
+                404,
+            )
 
+            return response
+        
+    # DELETE method
+    def delete(self, id):
+        newsletter = Newsletter.query.get(id)
+        if not newsletter:
+            response = make_response(
+                {"message": f"Newsletter ID {id} not found"},
+                404,
+            )
+            return response
+        else:
+            db.session.delete(newsletter)
+            db.session.commit()
+            response = make_response(
+                {"message": f"Newsletter ID {id} deleted successfully"},
+                200,
+            )
+            return response
+    
+        
+
+        
 api.add_resource(NewsletterByID, '/newsletters/<int:id>')
+
 
 
 if __name__ == '__main__':
